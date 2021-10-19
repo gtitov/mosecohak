@@ -1,0 +1,226 @@
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware  # CORS
+
+from enum import Enum
+
+import sqlite3
+from datetime import datetime
+
+class ParameterName(str, Enum):
+    co = "co"
+    no2 = "no2"
+    no = "no"
+    pm10 = "pm10"
+    pm25 = "pm25"
+
+app = FastAPI()
+
+origins = [ # CORS
+    "*",
+]
+
+app.add_middleware(  # CORS
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+DB_LOCATION = "./db.sqlite"
+
+con = sqlite3.connect(DB_LOCATION)
+con.row_factory
+cur = con.cursor()
+
+
+@app.get("/")
+async def root():
+    return "Hello World!"
+
+@app.get("/parameters")
+async def get_parameters():
+    """Возращает доступные показатели
+    """
+
+    cur.execute(
+        """SELECT   
+                parameter_id,
+                parameter_name
+            FROM parameters
+        """
+    )
+
+    parameters = cur.fetchall()
+
+    return [
+        {
+            "parameter_id": row[0],
+            "parameter_name": row[1]
+        }
+        for row in parameters
+    ]
+
+
+@app.get("/stations")
+async def get_stations():
+    """Возращает названия и координаты станций 
+    """
+
+    cur.execute(
+        """SELECT   
+                station_id,
+                st_name,
+                lat,
+                lon
+            FROM stations
+        """
+    )
+
+    stations = cur.fetchall()
+
+    return [
+        {
+            "station_id": row[0],
+            "st_name": row[1],
+            "lat": row[2],
+            "lon": row[3]
+        }
+        for row in stations
+    ]
+
+
+@app.get("/stations/{parameter}/{start_datetime}/{end_datetime}")
+async def get_stations_parameter_values(parameter: ParameterName, start_datetime: datetime, end_datetime: datetime):
+    """Возращает значения в станциях на заданный временной интервал для выбранного показателя. Для каждого показателя приводиться список значений на каждый час
+    в заданном интервале, включая `start_datetime` и не включая `end_datetime`.
+    
+    Использовать дату и время вида 2020-12-31T17:00
+    """
+
+    cur.execute(
+        f"""SELECT   
+                station_id,
+                datetime,
+                value,
+                forecast
+            FROM stations_all_params
+            JOIN parameters ON stations_all_params.parameter = parameters.parameter_id
+            WHERE parameter_name = '{parameter}' AND datetime >= strftime('%s', '{start_datetime}') AND datetime < strftime('%s', '{end_datetime}')
+        """
+    )
+
+    stations_values = cur.fetchall()
+
+    measured = [row for row in stations_values if not row[3]]
+    measured_max_datetime = max([row[1] for row in measured])
+    forecast = [row for row in stations_values if row[1] > measured_max_datetime]
+    clear_stations_values = measured + forecast
+
+    return [
+        {
+            "station_id": row[0],
+            "datetime": row[1],
+            "value": row[2],
+            "forecast": row[3]
+        }
+        for row in clear_stations_values
+    ]
+
+
+@app.get("/station/{station_id}/{start_datetime}/{end_datetime}")
+async def get_one_station_values(station_id: int, start_datetime: datetime, end_datetime: datetime):
+    """Возращает значения в станции на заданный временной интервал для всех показателей. Для каждого показателя приводиться список значений на каждый час
+    в заданном интервале, включая `start_datetime` и не включая `end_datetime`.
+    
+    Использовать дату и время вида 2020-12-31T17:00
+    """
+
+    cur.execute(
+        f"""SELECT
+                datetime,
+                parameter,
+                value
+            FROM stations_all_params
+            WHERE station_id = {station_id} AND datetime >= strftime('%s', '{start_datetime}') AND datetime < strftime('%s', '{end_datetime}')
+        """
+    )
+
+    one_station_values = cur.fetchall()
+
+    return {
+            "station_id": station_id,
+            "datetime": set([row[0] for row in one_station_values]),
+            "co": [row[2] for row in one_station_values if row[1] == 1],
+            "no2": [row[2] for row in one_station_values if row[1] == 2],
+            "no": [row[2] for row in one_station_values if row[1] == 3],
+            "pm10": [row[2] for row in one_station_values if row[1] == 4],
+            "pm25": [row[2] for row in one_station_values if row[1] == 5]
+    }
+
+
+@app.get("/basenet")
+async def get_basenet_geo():
+    """Возращает центры ячеек и ближайшую станцию, соответствующую каждой ячейке 
+    """
+
+    cur.execute(
+        """SELECT   
+                grid_id,
+                lat,
+                lon,
+                station_id
+            FROM basenet
+        """
+    )
+
+    basenet = cur.fetchall()
+
+    return [
+        {
+            "grid_id": row[0],
+            "lat": row[1],
+            "lon": row[2],
+            "station_id": row[3]
+        }
+        for row in basenet
+    ]
+
+
+@app.get("/net/{parameter}/{start_datetime}/{end_datetime}")
+async def get_net_parameter_values(parameter: ParameterName, start_datetime: datetime, end_datetime: datetime):
+    """Возращает значения ячеек на заданный временной интервал для выбранного показателя. Для каждого показателя приводиться список значений на каждый час
+    в заданном интервале, включая `start_datetime` и не включая `end_datetime`.
+    
+    Использовать дату и время вида 2020-12-31T17:00 (пока есть данные только для 2020-12-31 и 2021-01-01)
+    """
+
+    cur.execute(
+        f"""SELECT   
+                grid_id,
+                datetime,
+                param_value,
+                forecast
+            FROM net_all_params
+            JOIN parameters ON net_all_params.parameter = parameters.parameter_id
+            WHERE parameter_name = '{parameter}' AND datetime >= strftime('%s', '{start_datetime}') AND datetime < strftime('%s', '{end_datetime}')
+        """
+    )
+
+    net_values = cur.fetchall()
+
+    measured = [row for row in net_values if not row[3]]
+    measured_max_datetime = max([row[1] for row in measured])
+    forecast = [row for row in net_values if row[1] > measured_max_datetime]
+    clear_net_values = measured + forecast
+
+    return [
+        {
+            "grid_id": row[0],
+            "datetime": row[1],
+            "value": row[2],
+            "forecast": row[3]
+        }
+        for row in clear_net_values
+    ]
