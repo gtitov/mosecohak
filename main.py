@@ -114,7 +114,10 @@ async def get_stations_parameter_values(parameter: ParameterName, start_datetime
     stations_values = cur.fetchall()
 
     measured = [row for row in stations_values if not row[3]]
-    measured_max_datetime = max([row[1] for row in measured])
+    try:
+        measured_max_datetime = max([row[1] for row in measured])
+    except:
+        return []
     forecast = [row for row in stations_values if row[1] > measured_max_datetime]
     clear_stations_values = measured + forecast
 
@@ -159,6 +162,21 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
             "pm25": [row[2] for row in one_station_values if row[1] == 5]
     }
 
+@app.get("/stations/dates")
+async def get_stations_dates():
+    """Возращает минимальную и максимальную даты, которые есть в таблице сетки.
+    """
+
+    cur.execute(
+        f"""SELECT   
+                MIN(datetime), MAX(datetime)
+            FROM stations_all_params
+     """
+    )
+
+    stations_dates = cur.fetchall()
+    return(stations_dates[0])
+
 
 @app.get("/basenet")
 async def get_basenet_geo():
@@ -185,7 +203,7 @@ async def get_basenet_geo():
             "station_id": row[3]
         }
         for row in basenet
-    ]
+    ]   
 
 
 @app.get("/net/{parameter}/{start_datetime}/{end_datetime}")
@@ -205,13 +223,16 @@ async def get_net_parameter_values(parameter: ParameterName, start_datetime: dat
             FROM net_all_params
             JOIN parameters ON net_all_params.parameter = parameters.parameter_id
             WHERE parameter_name = '{parameter}' AND datetime >= strftime('%s', '{start_datetime}') AND datetime < strftime('%s', '{end_datetime}')
-        """
+     """
     )
 
     net_values = cur.fetchall()
 
     measured = [row for row in net_values if not row[3]]
-    measured_max_datetime = max([row[1] for row in measured])
+    try:
+        measured_max_datetime = max([row[1] for row in measured])
+    except:
+        []
     forecast = [row for row in net_values if row[1] > measured_max_datetime]
     clear_net_values = measured + forecast
 
@@ -224,3 +245,18 @@ async def get_net_parameter_values(parameter: ParameterName, start_datetime: dat
         }
         for row in clear_net_values
     ]
+
+@app.get("/net/dates")
+async def get_net_dates():
+    """Возращает минимальную и максимальную даты, которые есть в таблице сетки.
+    """
+
+    cur.execute(
+        f"""SELECT   
+                MIN(datetime), MAX(datetime)
+            FROM net_all_params
+     """
+    )
+
+    net_dates = cur.fetchall()
+    return(net_dates[0])
