@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware  # CORS
+from fastapi.middleware.gzip import GZipMiddleware  # gZip
 
 from enum import Enum
 
@@ -15,6 +16,8 @@ class ParameterName(str, Enum):
     pm25 = "pm25"
 
 app = FastAPI()
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)  # gZip
 
 origins = [ # CORS
     "*",
