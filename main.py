@@ -100,15 +100,20 @@ async def get_stations_parameter_values(parameter: ParameterName, start_datetime
     """
 
     cur.execute(
-        f"""SELECT   
+        """SELECT   
                 station_id,
                 datetime,
                 value,
                 forecast
             FROM stations_all_params
             JOIN parameters ON stations_all_params.parameter = parameters.parameter_id
-            WHERE parameter_name = '{parameter}' AND datetime >= strftime('%s', '{start_datetime}') AND datetime < strftime('%s', '{end_datetime}')
-        """
+            WHERE parameter_name = :parameter AND datetime >= strftime('%s', :start_datetime) AND datetime < strftime('%s', :end_datetime)
+        """,
+        {
+            "parameter": parameter,
+            "start_datetime": start_datetime,
+            "end_datetime": end_datetime
+        }
     )
 
     stations_values = cur.fetchall()
@@ -141,13 +146,18 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
     """
 
     cur.execute(
-        f"""SELECT
+        """SELECT
                 datetime,
                 parameter,
                 value
             FROM stations_all_params
-            WHERE station_id = {station_id} AND datetime >= strftime('%s', '{start_datetime}') AND datetime < strftime('%s', '{end_datetime}')
-        """
+            WHERE station_id = :station_id AND datetime >= strftime('%s', :start_datetime) AND datetime < strftime('%s', :end_datetime)
+        """,
+        {
+            "station_id": station_id,
+            "start_datetime": start_datetime,
+            "end_datetime": end_datetime
+        }
     )
 
     one_station_values = cur.fetchall()
@@ -215,15 +225,20 @@ async def get_net_parameter_values(parameter: ParameterName, start_datetime: dat
     """
 
     cur.execute(
-        f"""SELECT   
+        """SELECT   
                 grid_id,
                 datetime,
                 param_value,
                 forecast
             FROM net_all_params
             JOIN parameters ON net_all_params.parameter = parameters.parameter_id
-            WHERE parameter_name = '{parameter}' AND datetime >= strftime('%s', '{start_datetime}') AND datetime < strftime('%s', '{end_datetime}')
-     """
+            WHERE parameter_name = :parameter AND datetime >= strftime('%s', :start_datetime) AND datetime < strftime('%s', :end_datetime)
+        """,
+        {
+            "parameter": parameter,
+            "start_datetime": start_datetime,
+            "end_datetime": end_datetime
+        }
     )
 
     net_values = cur.fetchall()
