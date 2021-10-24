@@ -121,15 +121,6 @@ async def get_stations_parameter_values(parameter: ParameterName, start_datetime
 
     stations_values = cur.fetchall()
 
-    # To get measured when possible
-    # measured = [row for row in stations_values if not row[3]]
-    # try:
-    #     measured_max_datetime = max([row[1] for row in measured])
-    # except:
-    #     return []
-    # forecast = [row for row in stations_values if row[1] > measured_max_datetime]
-    # clear_stations_values = measured + forecast
-
     return [
         {
             "station_id": row[0],
@@ -147,36 +138,6 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
     
     Использовать дату и время вида 2020-12-31T17:00
     """
-
-    # Long form
-    # cur.execute(
-    #     """SELECT
-    #             datetime,
-    #             parameter,
-    #             value,
-    #             forecast
-    #         FROM stations_all_params
-    #         WHERE station_id = :station_id AND datetime >= strftime('%s', :start_datetime) AND datetime < strftime('%s', :end_datetime)
-    #     """,
-    #     {
-    #         "station_id": station_id,
-    #         "start_datetime": start_datetime,
-    #         "end_datetime": end_datetime
-    #     }
-    # )
-
-    # one_station_values = cur.fetchall()
-
-    # return [
-    #     {
-    #         "station_id": station_id,
-    #         "datetime": row[0],
-    #         "parameter": row[1],
-    #         "value": row[2],
-    #         "forecast": row[3]
-    #     }
-    #     for row in one_station_values
-    # ]
 
     # Wide form
     cur.execute(
@@ -290,14 +251,6 @@ async def get_net_parameter_values(parameter: ParameterName, start_datetime: dat
 
     net_values = cur.fetchall()
 
-    # To get measured when possible
-    # measured = [row for row in net_values if not row[3]]
-    # try:
-    #     measured_max_datetime = max([row[1] for row in measured])
-    # except:
-    #     []
-    # forecast = [row for row in net_values if row[1] > measured_max_datetime]
-    # clear_net_values = measured + forecast
 
     return [
         {
