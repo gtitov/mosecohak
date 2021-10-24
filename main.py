@@ -147,13 +147,51 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
     Использовать дату и время вида 2020-12-31T17:00
     """
 
+    # cur.execute(
+    #     """SELECT
+    #             datetime,
+    #             parameter,
+    #             value,
+    #             forecast
+    #         FROM stations_all_params
+    #         WHERE station_id = :station_id AND datetime >= strftime('%s', :start_datetime) AND datetime < strftime('%s', :end_datetime)
+    #     """,
+    #     {
+    #         "station_id": station_id,
+    #         "start_datetime": start_datetime,
+    #         "end_datetime": end_datetime
+    #     }
+    # )
+
+    # one_station_values = cur.fetchall()
+
+    # return [
+    #     {
+    #         "station_id": station_id,
+    #         "datetime": row[0],
+    #         "parameter": row[1],
+    #         "value": row[2],
+    #         "forecast": row[3]
+    #     }
+    #     for row in one_station_values
+    # ]
+
     cur.execute(
         """SELECT
                 datetime,
-                parameter,
-                value
-            FROM stations_all_params
-            WHERE station_id = :station_id AND datetime >= strftime('%s', :start_datetime) AND datetime < strftime('%s', :end_datetime)
+                GROUP_CONCAT(CASE WHEN "parameter" == 1 THEN value END) as co,
+                GROUP_CONCAT(CASE WHEN "parameter" == 2 THEN value END) as no2,
+                GROUP_CONCAT(CASE WHEN "parameter" == 3 THEN value END) as no,
+                GROUP_CONCAT(CASE WHEN "parameter" == 4 THEN value END) as pm10,
+                GROUP_CONCAT(CASE WHEN "parameter" == 5 THEN value END) as pm25,
+                forecast
+            FROM
+                stations_all_params
+            WHERE
+                station_id = :station_id
+                AND datetime >= strftime('%s', :start_datetime)
+                AND datetime < strftime('%s', :end_datetime)
+            GROUP BY datetime
         """,
         {
             "station_id": station_id,
@@ -168,8 +206,12 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
         {
             "station_id": station_id,
             "datetime": row[0],
-            "parameter": row[1],
-            "value": row[2]
+            "co": row[1],
+            "no2": row[2],
+            "no": row[3],
+            "pm10": row[4],
+            "pm25": row[5],
+            "forecast": row[6]
         }
         for row in one_station_values
     ]
