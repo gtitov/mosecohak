@@ -121,13 +121,14 @@ async def get_stations_parameter_values(parameter: ParameterName, start_datetime
 
     stations_values = cur.fetchall()
 
-    measured = [row for row in stations_values if not row[3]]
-    try:
-        measured_max_datetime = max([row[1] for row in measured])
-    except:
-        return []
-    forecast = [row for row in stations_values if row[1] > measured_max_datetime]
-    clear_stations_values = measured + forecast
+    # To get measured when possible
+    # measured = [row for row in stations_values if not row[3]]
+    # try:
+    #     measured_max_datetime = max([row[1] for row in measured])
+    # except:
+    #     return []
+    # forecast = [row for row in stations_values if row[1] > measured_max_datetime]
+    # clear_stations_values = measured + forecast
 
     return [
         {
@@ -136,7 +137,7 @@ async def get_stations_parameter_values(parameter: ParameterName, start_datetime
             "value": row[2],
             "forecast": row[3]
         }
-        for row in clear_stations_values
+        for row in stations_values
     ]
 
 
@@ -147,6 +148,7 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
     Использовать дату и время вида 2020-12-31T17:00
     """
 
+    # Long form
     # cur.execute(
     #     """SELECT
     #             datetime,
@@ -176,6 +178,7 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
     #     for row in one_station_values
     # ]
 
+    # Wide form
     cur.execute(
         """SELECT
                 datetime,
@@ -287,13 +290,14 @@ async def get_net_parameter_values(parameter: ParameterName, start_datetime: dat
 
     net_values = cur.fetchall()
 
-    measured = [row for row in net_values if not row[3]]
-    try:
-        measured_max_datetime = max([row[1] for row in measured])
-    except:
-        []
-    forecast = [row for row in net_values if row[1] > measured_max_datetime]
-    clear_net_values = measured + forecast
+    # To get measured when possible
+    # measured = [row for row in net_values if not row[3]]
+    # try:
+    #     measured_max_datetime = max([row[1] for row in measured])
+    # except:
+    #     []
+    # forecast = [row for row in net_values if row[1] > measured_max_datetime]
+    # clear_net_values = measured + forecast
 
     return [
         {
@@ -302,7 +306,7 @@ async def get_net_parameter_values(parameter: ParameterName, start_datetime: dat
             "value": row[2],
             "forecast": row[3]
         }
-        for row in clear_net_values
+        for row in net_values
     ]
 
 @app.get("/net/dates")
