@@ -142,8 +142,7 @@ async def get_stations_parameter_values(parameter: ParameterName, start_datetime
 
 @app.get("/station/{station_id}/{start_datetime}/{end_datetime}")
 async def get_one_station_values(station_id: int, start_datetime: datetime, end_datetime: datetime):
-    """Возращает значения в станции на заданный временной интервал для всех показателей. Для каждого показателя приводиться список значений на каждый час
-    в заданном интервале, включая `start_datetime` и не включая `end_datetime`.
+    """Возращает значения в станции на заданный временной интервал для всех показателей.
     
     Использовать дату и время вида 2020-12-31T17:00
     """
@@ -165,15 +164,15 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
 
     one_station_values = cur.fetchall()
 
-    return {
+    return [
+        {
             "station_id": station_id,
-            "datetime": set([row[0] for row in one_station_values]),
-            "co": [row[2] for row in one_station_values if row[1] == 1],
-            "no2": [row[2] for row in one_station_values if row[1] == 2],
-            "no": [row[2] for row in one_station_values if row[1] == 3],
-            "pm10": [row[2] for row in one_station_values if row[1] == 4],
-            "pm25": [row[2] for row in one_station_values if row[1] == 5]
-    }
+            "datetime": row[0],
+            "parameter": row[1],
+            "value": row[2]
+        }
+        for row in one_station_values
+    ]
 
 @app.get("/stations/dates")
 async def get_stations_dates():
