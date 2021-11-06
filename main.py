@@ -180,6 +180,32 @@ async def get_one_station_values(station_id: int, start_datetime: datetime, end_
         for row in one_station_values
     ]
 
+@app.get("/station/{station_id}/dates")
+async def get_one_station_dates(station_id: int):
+    """Возращает даты, для которых на данной станции есть данные.
+    """
+
+    # Wide form
+    cur.execute(
+        """SELECT
+                DISTINCT(date(datetime, 'unixepoch'))
+            FROM
+                stations_all_params
+            WHERE
+                station_id = :station_id
+        """,
+        {
+            "station_id": station_id
+        }
+    )
+
+    one_station_dates = cur.fetchall()
+
+    return [
+        row[0]
+        for row in one_station_dates
+    ]
+
 @app.get("/stations/dates")
 async def get_stations_dates():
     """Возращает минимальную и максимальную даты, которые есть в таблице сетки.
